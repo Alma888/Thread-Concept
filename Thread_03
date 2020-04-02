@@ -1,0 +1,160 @@
+# Thread-Concept
+线程
+
+1、线程的概念
+线程是CPU调度的最小单位，又称为轻量级进程。
+多线程的概念
+多线程是这样一种机制：它允许在程序中并发执行多个指令流，每个指令流都称为一个线程。
+使用多线程原因
+多线程机制下的多个线程彼此间相互独立，比较容易共享数据，并行的工作可以完成多项任务，来提高程序的效率和性能。
+
+2、进程和线程的区别（也是线程的优点）
+(1) 进程是系统进行资源分配的最小单位，而线程是CPU调度的最小单位。
+（2）线程的创建、切换及终止效率更高，需要操作系统做的工作更少，代价更小。
+（3）线程占用的资源要比进程少很多
+（4）能充分利用多处理器的可并行数量
+（5）进程之间相互独立，通信比较困难，而线程之间共享一块内存区域，通信比较方便
+（6）进程在执行过程中，包含比较固定的入口、执行顺序和出口，而线程的这些过程会被应用程序所控制。
+3、如何创建线程
+（1）创建线程方法1——继承Thread类
+A、可以通过继承 Thread 来创建一个线程类
+B、该方法好处：this 代表的就是当前线程，不需要通过 Thread.currentThread() 来获取当前线程的引用。
+
+class MyThread extends Thread {
+     @Override
+      public void run() {
+         System.out.println("这里是线程运行的代码");
+       }
+}
+
+MyThread t = new MyThread();
+t.start(); // 线程开始运行
+
+（2）创建线程方法2 ——实现Runnable接口
+A、通过实现Runnable 接口，并且调用 Thread的构造方法时将 Runnable 对象作为 target 参数传入来创建线程对象。
+B、该方法的好处是可以规避类的单继承的限制；但需要通过 Thread.currentThread() 来获取当前线程的引用。
+而实现Runnable接口就不能使用this来代表当前线程
+
+class MyRunnable implements Runnable {
+@Override
+public void run() {
+System.out.println(Thread.currentThread().getName() + "这里是线程运行的代码");
+}
+}
+
+Thread t = new Thread(new MyRunnable());
+t.start(); // 线程开始运行
+1
+2
+4、多线程的优势
+（1）某些场景下，建模简单（代码好写）
+（2）某些场景下，运行速度可以提升，性能高
+
+【ThreadDemo1说明了优点1：建模简单】
+
+public class ThreadDemo1 {
+    private static class MyThread extends Thread {
+        @Override
+        public void run() {
+            while (true) {
+                System.out.println("我在 method2 中打印");
+                // 进程会暂停运行 1 秒
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static void method2() {
+        Thread thread = new MyThread();
+        thread.start();
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        // 两个死循环可以同时开始执行，没有一个卡住另一个的情况
+        method2();
+        while (true) {
+            System.out.println("我在 main 中打印");
+            // 进程会暂停运行 1 秒
+            Thread.sleep(1000);
+        }
+    }
+}
+
+【ThreadDemo2说明了优点2：提升运行速度】
+
+package Thread;
+//演示了：多线程相比单线程能够提高运行速度（多线程的优点之一）
+//前提是计算的基数（本题中的COUNT）比较大时，多线程这个优点更突出
+public class ThreadDemo2 {
+    private static final long COUNT=10_0000_0000;
+    public static void main(String[] args) throws InterruptedException {
+        serial();     //串行
+        concurrent(); //并发
+    }
+
+    private static class CalcThread extends Thread{
+        @Override
+        public void run() {
+            int n=0;
+            for(long i=0;i<COUNT;i++){
+                n++;
+            }
+        }
+    }
+    private static void concurrent() throws InterruptedException {
+        long begin=System.nanoTime();
+        Thread thread1=new CalcThread();
+        thread1.start();
+        Thread thread2=new CalcThread();
+        thread2.start();
+
+        int a=0;
+        for(long i=0;i<COUNT;i++){
+            a++;
+        }
+        thread1.join();
+        thread2.join();
+        long end=System.nanoTime();
+        double s=(end-begin)*1.0/1000/1000/1000;
+        System.out.printf("并发模式：耗时：%.4f%n",s);
+    }
+
+    private static void serial() {
+        long begin=System.nanoTime();
+        int a=0;
+        for(int i=0;i<COUNT;i++){
+            a++;
+        }
+
+        int b=0;
+        for(int i=0;i<COUNT;i++){
+            b++;
+        }
+
+        int c=0;
+        for(int i=0;i<COUNT;i++){
+            c++;
+        }
+        long end=System.nanoTime();
+        double s=(end-begin)*1.0/1000/1000/1000;
+        System.out.printf("串行模式：耗时：%.4f%n",s);
+    }
+}
+
+5、如何创建一个Thread对象
+（1）继承Thread类，复写run方法
+（2）实现Runnable接口的类，复写run方法
+多个线程之间可以互相共享的资源——共享资源、共享变量
+6、Java中的内存区域：
+栈 区————每个线程都有自己独立的栈空 间栈里的数据是不共享的
+堆 区————大家共享的是同一个堆 和 方法区
+方法区————堆 和 方法区中的数据是共享的
+7、启动一个线程——start()
+之前我们已经看到如何通过覆写 run 方法创建一个线程对象，但线程对象被创建出来并不意味着线程就开始运行了。
+为什么启动一个线程要调用start()方法 而不是调用 run()方法
+=> 因为run方法只是交给其他线程去执行的任务，但并未真正运行起来; 而start方法才是真正启动一个线程的方法。启动一个线程必须调用方法来启动，也就是调用Thread类的start()方法。
+不是调用run()方法的原因是:run()中包含的是线程的主体，也就是这个线程被启动后将要运行的代码，它和线程的启动没有任何关系。
